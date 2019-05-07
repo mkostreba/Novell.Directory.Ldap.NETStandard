@@ -125,7 +125,7 @@ namespace Novell.Directory.Ldap
 
                                 if (cons.ReferralFollowing)
                                 {
-//									referralConn = conn.chaseReferral(queue, cons, msg, refs, 0, true, referralConn);
+                                    referralConn = conn.ChaseReferral(queue, cons, msg, refs, 0, true, referralConn);
                                 }
                                 else
                                 {
@@ -148,7 +148,7 @@ namespace Novell.Directory.Ldap
                                 if (resultCode == LdapException.REFERRAL && cons.ReferralFollowing)
                                 {
                                     // Following referrals
-//									referralConn = conn.chaseReferral(queue, cons, resp, resp.Referrals, 0, false, referralConn);
+                                    referralConn = conn.ChaseReferral(queue, cons, resp, resp.Referrals, 0, false, referralConn);
                                 }
                                 else if (resultCode != LdapException.SUCCESS)
                                 {
@@ -159,10 +159,10 @@ namespace Novell.Directory.Ldap
                                 // We are done only when we have read all messages
                                 // including those received from following referrals
                                 var msgIDs = queue.MessageIDs;
-                                if (msgIDs.Length == 0)
+                                if (msgIDs.Length == 0 && (controls == null || controls.Length == 0))
                                 {
                                     // Release referral exceptions
-//									conn.releaseReferralConnections(referralConn);
+									conn.ReleaseReferralConnections(referralConn);
                                     return true; // search completed
                                 }
                             }
@@ -186,6 +186,23 @@ namespace Novell.Directory.Ldap
             }
         }
 
+        /// <summary>
+        /// Release referral connections
+        /// </summary>
+        public void ReleaseReferralConnections()
+        {
+            conn.ReleaseReferralConnections(referralConn);
+        }
+
+        /// <summary>
+        /// Get referral connections
+        /// </summary>
+        /// <returns></returns>
+        public ArrayList GetReferralConnections()
+        {
+            return referralConn;
+        }
+
         private readonly ArrayList entries; // Search entries
         private int entryCount; // # Search entries in vector
         private int entryIndex; // Current position in vector
@@ -196,8 +213,9 @@ namespace Novell.Directory.Ldap
         private bool completed; // All entries received
         private LdapControl[] controls; // Last set of controls
         private readonly LdapSearchQueue queue;
+        private readonly LdapConnection conn;
         private readonly LdapSearchConstraints cons; // LdapSearchConstraints for search
-        //private ArrayList referralConn = null; // Referral Connections
+        private ArrayList referralConn; // Referral Connections
 
         /// <summary>
         ///     Constructs a queue object for search results.
@@ -214,6 +232,7 @@ namespace Novell.Directory.Ldap
         internal LdapSearchResults(LdapConnection conn, LdapSearchQueue queue, LdapSearchConstraints cons)
         {
             // setup entry Vector
+            this.conn = conn;
             this.cons = cons;
             var requestedBatchSize = cons.BatchSize;
             entries = new ArrayList(requestedBatchSize == 0 ? 64 : requestedBatchSize);
